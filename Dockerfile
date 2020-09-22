@@ -26,6 +26,7 @@ RUN apt install -y wget \
     # https://stackoverflow.com/a/29862854
     libsqlite3-dev
 WORKDIR ${HOME}
+RUN apt-get install -y libffi-dev
 RUN wget https://www.python.org/ftp/python/3.7.5/Python-3.7.5.tgz \
     && tar zxf Python-3.7.5.tgz \
     && cd Python-3.7.5 \
@@ -38,7 +39,7 @@ RUN update-alternatives --install /usr/local/bin/pip3 pip3 /usr/local/bin/pip3.7
 RUN pip3 install -U pip
 
 # Install other requisites
-RUN apt install -y vim
+RUN apt install -y vim curl
 # MySQL (option)
 # https://stackoverflow.com/a/25682993
 RUN apt install -y libmysqlclient-dev
@@ -49,8 +50,13 @@ RUN mkdir -p ${DEPLOY_DIR}
 WORKDIR ${DEPLOY_DIR}
 
 # Install packages for project
-ADD requirements/base.txt requirements/base.txt
-RUN pip3 install -r requirements/base.txt
+COPY pyproject.toml poetry.lock ./
+RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python3
+ENV PATH="${HOME}/.poetry/bin:${PATH}"
+RUN poetry install --no-dev
+
+# Copy files
+COPY . .
 
 # Set entrypoint
-ENTRYPOINT ["/bin/bash", "scripts/init_mysite.sh"]
+CMD ["/bin/bash", "scripts/init_mysite.sh"]
